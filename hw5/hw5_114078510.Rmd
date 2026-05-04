@@ -1,0 +1,300 @@
+---
+output:
+  pdf_document:
+    latex_engine: xelatex
+header-includes:
+  # Packages
+  - '\usepackage{fancyhdr}'
+  - '\usepackage{float}'
+  - '\usepackage{etoolbox}'
+  - '\usepackage{framed}'
+  - '\usepackage[most]{tcolorbox}'
+  # Page style
+  - '\pagestyle{fancy}'
+  - '\fancyhf{}'
+  - '\fancyhead[R]{ID: 114078510}'
+  - '\fancyfoot[R]{\footnotesize\thepage}'
+  - '\renewcommand{\headrulewidth}{0pt}'
+  - '\setlength{\leftmargini}{1.5em}'
+  - '\setlength{\leftmarginii}{1.5em}'
+  # Section and spacing
+  - '\makeatletter'
+  - '\renewcommand{\section}{\@startsection{section}{1}{\z@}{0.1\baselineskip}{0.1\baselineskip}{\normalfont\Large\bfseries}}'
+  - '\preto{\@verbatim}{\topsep=0pt \partopsep=0pt \parskip=0pt \parsep=0pt}'
+  - '\AtBeginEnvironment{itemize}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}\setlength{\topsep}{0pt}}'
+  - '\makeatother'
+  # Custom boxes/environments
+  - '\newtcolorbox{remarkbox}{colback=yellow!6,colframe=orange!55!yellow,arc=1.5mm,boxrule=0.4pt,left=4pt,right=4pt,top=2pt,bottom=1pt}'
+  - '\newtcolorbox{recallbox}{colback=gray!6,colframe=black!60,arc=1.5mm,boxrule=0.4pt,left=4pt,right=4pt,top=2pt,bottom=1pt}'
+  - '\setlength{\OuterFrameSep}{1.5pt}'
+  - '\makeatletter'
+  - '\@ifundefined{Shaded}{\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}\vspace{-0.2\baselineskip}}}{\renewenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}\vspace{-0.2\baselineskip}}}'
+  - '\makeatother'
+---
+
+# CSDS 2026 -- HW 5
+\begin{remarkbox}
+\footnotesize\textit{\textbf{Remark:} Using AI to refine plots formatting, improve markdown structure and the grammar of written answers.}
+\end{remarkbox}
+
+\medskip
+
+### Initialization
+```{r setup}
+set.seed(20260325)
+library(ggplot2)
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.pos = "H",
+  fig.align = "center",
+  fig.show = "hold",
+  dev.args = list(pointsize = 9)
+)
+```
+
+\begingroup\color{gray!45}\noindent\rule{\linewidth}{0.3pt}\par\endgroup
+
+\par
+Verizon claims that mean response time for ILEC and CLEC customers are the same, but the PUC would like to test if CLEC customers were facing greater response times.
+
+```{r load_data}
+verizon <- read.csv("verizon_wide.csv")
+head(verizon)
+```
+
+## Question 1
+The Verizon dataset this week is provided as a “wide” data frame. Let’s practice reshaping it to a “long” data frame. You may use either shape (wide or long) for your analyses in later questions.
+
+### (a) Pick a reshaping package and research them online and tell us why you picked it over others (provide any helpful links that supported your decision).
+I chose `tidyr` because it is specifically designed for data tidying and reshaping tasks. Its function `gather()` provides a straightforward way to convert wide-format data into long format, which makes the code easy to read and interpret. While `reshape2` is also a powerful package for reshaping data, I found `tidyr` to be more intuitive for this specific task.
+
+### (b) Show the code to reshape the `verizon_wide.csv` sample
+```{r rq1b}
+library(tidyr)
+
+verizon_long <- gather(
+  verizon,
+  key = "customer_type",
+  value = "repair_time",
+  na.rm = TRUE
+)
+```
+
+### (c) Show the “head” and “tail” of the data to demonstrate that the reshaping worked
+```{r rq1c_1}
+head(verizon_long)
+```
+
+\medskip
+
+```{r rq1c_2}
+tail(verizon_long)
+```
+
+### (d) Visualize Verizon’s response times for ILEC vs. CLEC customers
+The density plot shows the overall shape of the distribution, helping compare the repair times of ILEC and CLEC by revealing whether the data are skewed and whether one group tends to have longer repair times than the other.
+```{r rq1d, out.width='65%'}
+theme_set(theme_minimal())
+base_theme <- theme(
+  plot.title = element_text(hjust = 0.5),
+  legend.position = c(0.94, 0.95),
+  legend.justification = c(1, 1),
+  legend.title = element_blank(),
+  plot.margin = margin(8, 12, 6, 8)
+)
+
+ggplot(verizon_long, aes(x = repair_time, color = customer_type)) +
+  geom_density(linewidth = 1, na.rm = TRUE, key_glyph = "path") +
+  scale_color_manual(values = c("ILEC" = "#D95F48", "CLEC" = "#6FA3FF")) +
+  labs(
+    title = "Density of Repair Times for ILEC vs. CLEC Customers",
+    x = "Repair Time",
+    y = "Density",
+    color = NULL
+  ) +
+  base_theme
+```
+
+
+## Question 2
+Let’s test if the mean of response times for CLEC customers is greater than for ILEC customers.
+
+### (a) State the appropriate null and alternative hypotheses (one-tailed)
+
+- $H_{null}$: mean response times for CLEC customers $\leq$ ILEC customers
+- $H_{alt}$: mean response times for CLEC customers > ILEC customers
+
+
+### (b) Use the appropriate form of the `t.test()` function to test the difference between the mean of ILEC vs CLEC response times at 1% significance
+
+i. **Conduct the test assuming variances of the two populations are equal**
+    \par
+    ```{r rq2b_i}
+    customer_type <- verizon_long$customer_type
+    repair_time <- verizon_long$repair_time
+
+    clec_times <- repair_time[customer_type == "CLEC"]
+    ilec_times <- repair_time[customer_type == "ILEC"]
+
+    t.test(clec_times, ilec_times, alternative = "greater", var.equal = TRUE)
+    ```
+
+ii. **Conduct the test assuming variances of the two populations are not equal**
+    \par
+    ```{r rq2b_ii}
+    t.test(clec_times, ilec_times, alternative = "greater", var.equal = FALSE)
+    ```
+
+### (c) Implement a permutation test, as we saw in class, to compare the means of ILEC vs. CLEC times
+
+i. **Visualize the distribution of permuted differences, and indicate the observed difference as well**
+    \par
+    ```{r rq2c_i, out.width='65%'}
+    customer_type <- verizon_long$customer_type
+    repair_time <- verizon_long$repair_time
+
+    observed_diff <- mean(clec_times) - mean(ilec_times)
+
+    perm_diff <- function(values, groups) {
+      perm <- sample(values)
+      grouped <- split(perm, groups)
+      mean(grouped$CLEC) - mean(grouped$ILEC)
+    }
+
+    n_perm <- 10000
+    perm_diffs <- replicate(n_perm, perm_diff(repair_time, customer_type))
+    perm_df <- data.frame(perm_diffs = perm_diffs)
+
+    # plot
+    ggplot(perm_df, aes(x = perm_diffs)) +
+      geom_histogram(
+        aes(y = after_stat(density)),
+        fill = "#cee9f2", color = "white"
+      ) +
+      geom_density(color = "#3e5ed2", linewidth = 1) +
+      geom_vline(
+        aes(xintercept = observed_diff, color = "Observed difference"),
+        linewidth = 1.2, linetype = "dashed", key_glyph = "path"
+      ) +
+      scale_color_manual(values = c("Observed difference" = "#D95F48")) +
+      labs(
+        title = "Distribution of Permuted Differences in Means",
+        x = "Permuted_diffs",
+        y = "Density"
+      ) +
+      base_theme
+    ```
+
+ii. **What are the one-tailed and two-tailed p-values of the permutation test?**
+
+- One-tailed p-value
+  ```{r rq2c_ii_one_tailed}
+  p_1tailed <- sum(perm_diffs > observed_diff) / n_perm
+  p_1tailed
+  ```
+
+- Two-tailed p-value
+  ```{r rq2c_ii_two_tailed}
+  p_2tailed <- sum(abs(perm_diffs) > abs(observed_diff)) / n_perm
+  p_2tailed
+  ```
+
+    \par
+    The one-tailed and two-tailed permutation p-values are the same because there were essentially no permuted differences smaller than the negative of the observed difference. In other words, the left tail beyond -observed_diff contributed almost nothing, so the two-tailed p-value was the same as the right-tailed p-value.
+
+iii. **Would you reject the null hypothesis at 1% significance in a one-tailed test?**
+    \par
+    The one-tailed p-value is 0.0191, which is greater than the 1% significance level (0.01). Therefore, we would not reject the null hypothesis at 1% significance in a one-tailed test. So there is not enough evidence to conclude that the mean response times for CLEC customers are greater than for ILEC customers at that level.
+
+
+## Question 3
+Let’s use the Wilcoxon test to see if the response times for CLEC are different than ILEC.
+
+\newpage
+
+### (a) Compute the W statistic comparing the values using permutation or rank sum approach
+```{r rq3a}
+# User rank sum approach
+time_ranks <- rank(repair_time)
+ranked_groups <- split(time_ranks, customer_type)
+R1 <- sum(ranked_groups$CLEC)
+N1 <- length(clec_times)
+W <- R1 - N1 * (N1 + 1) / 2
+W
+```
+
+### (b) Compute the one-tailed p-value for W
+```{r rq3b}
+n1 <- length(clec_times)
+n2 <- length(ilec_times)
+wilcox_p_1tail <- 1 - pwilcox(W, n1, n2)
+wilcox_p_1tail
+```
+
+### (c) Run the Wilcoxon Test again using the `wilcox.test()` function in R (Should be the same as [a])
+```{r rq3c}
+wilcox.test(clec_times, ilec_times, alternative = "greater")
+```
+
+### (d) At 1% significance, and one-tailed, would you reject the null hypothesis that the values of CLEC and ILEC are similar?
+The one-tailed p-values from the Wilcoxon test are approximately 0.00037 for the rank-sum calculation and 0.0004565 for the wilcox.test() result. Both are below the 1% significance level, so we reject the null hypothesis and conclude that CLEC customers tend to have greater response times than ILEC customers.
+
+
+## Question 4
+One of the assumptions of some classical statistical tests is that our population data should be roughly normal. Let’s explore one way of visualizing whether a sample of data is normally distributed.
+
+### (a) Follow the following steps to create a function to see how a distribution of values compares to a perfectly normal distribution.
+
+i. Create a sequence of probability numbers from 0 to 1, with ~1000 probabilities in between `probs1000 <- seq(0, 1, 0.001)`
+ii. Calculate ~1000 quantiles of our values (you can use probs=probs1000), and name it `q_vals`
+iii. Calculate ~1000 quantiles of a perfectly normal distribution with the *same mean* and *standard deviation* as our `values`; name this vector of normal quantiles `q_norm`
+iv. Create a scatterplot comparing the quantiles of a normal distribution versus quantiles of `values`
+v. Finally, draw a red line with intercept of 0 and slope of 1, comparing these two sets of quantiles
+
+```{r rq4a}
+norm_qq_plot <- function(values, main = NULL) {
+  # (i)
+  probs1000 <- seq(0, 1, 0.001)
+  # (ii)
+  q_vals <- quantile(values, probs = probs1000)
+  # (iii)
+  q_norm <- qnorm(probs1000, mean = mean(values), sd = sd(values))
+  # (iv)
+  plot(q_norm, q_vals,
+       xlab = "Normal Quantiles", 
+       ylab = "Values Quantiles",
+       main = main)
+  # (v)
+  abline(0, 1, col = "#ff451f", lwd = 2)
+}
+```
+
+Add extra variable `main` to allow users to specify the title of the plot when calling the function.
+
+### (b) Confirm that your function works by running it against the values of our d123 distribution from week 3
+```{r rq4b, out.width='75%', fig.width=7, fig.height=4}
+set.seed(978234)
+d1 <- rnorm(n = 500, mean = 15, sd = 5)
+d2 <- rnorm(n = 200, mean = 30, sd = 5)
+d3 <- rnorm(n = 100, mean = 45, sd = 5)
+d123 <- c(d1, d2, d3)
+
+par(mfrow = c(1, 2))
+norm_qq_plot(d123, main = "d123 Q-Q Plot")
+plot(density(d123), main = "d123 Density Plot")
+```
+
+
+Both the ***Q-Q plot*** and the ***density plot*** suggest that d123 is not normally distributed. The ***density plot*** is not symmetric and appears to be multi-modal rather than bell-shaped, while the ***Q-Q plot*** shows clear deviations from the reference line.
+
+### (c) Use your normal Q-Q plot function, norm_qq_plot, to check if the values from each of the CLEC and ILEC samples we compared in question 2 could be normally distributed. What’s your conclusion?
+```{r rq4c_clec, out.width='75%', fig.width=7, fig.height=4}
+par(mfrow = c(1, 2))
+norm_qq_plot(clec_times, main = "CLEC Times Q-Q Plot")
+norm_qq_plot(ilec_times, main = "ILEC Times Q-Q Plot")
+```
+
+The Q-Q plots indicate that both ILEC and CLEC response times deviate substantially from normality. In both groups, the points do not follow the reference line, especially at the tails, which suggests skewness and heavy tails. The deviation is more severe for CLEC, which shows a much stronger right tail and more extreme observations. Therefore, neither sample appears to be normally distributed.

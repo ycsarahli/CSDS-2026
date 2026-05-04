@@ -1,0 +1,440 @@
+---
+output:
+  pdf_document:
+    latex_engine: xelatex
+header-includes:
+  # Packages
+  - '\usepackage{fancyhdr}'
+  - '\usepackage{float}'
+  - '\usepackage{etoolbox}'
+  - '\usepackage{framed}'
+  - '\usepackage[most]{tcolorbox}'
+  # Page style
+  - '\pagestyle{fancy}'
+  - '\fancyhf{}'
+  - '\fancyhead[R]{ID: 114078510}'
+  - '\fancyfoot[R]{\footnotesize\thepage}'
+  - '\renewcommand{\headrulewidth}{0pt}'
+  - '\setlength{\leftmargini}{1.5em}'
+  - '\setlength{\leftmarginii}{1.5em}'
+  # Section and spacing
+  - '\makeatletter'
+  - '\renewcommand{\section}{\@startsection{section}{1}{\z@}{0.1\baselineskip}{0.1\baselineskip}{\normalfont\Large\bfseries}}'
+  - '\preto{\@verbatim}{\topsep=0pt \partopsep=0pt \parskip=0pt \parsep=0pt}'
+  - '\AtBeginEnvironment{itemize}{\setlength{\itemsep}{1.2em}\setlength{\parskip}{0pt}\setlength{\topsep}{0.2em}}'
+  - '\makeatother'
+  # Custom boxes/environments
+  - '\newtcolorbox{remarkbox}{colback=yellow!6,colframe=orange!55!yellow,arc=1.5mm,boxrule=0.4pt,left=4pt,right=4pt,top=2pt,bottom=1pt}'
+  - '\newtcolorbox{recallbox}{colback=gray!6,colframe=black!60,arc=1.5mm,boxrule=0.4pt,left=4pt,right=4pt,top=2pt,bottom=1pt}'
+  - '\setlength{\OuterFrameSep}{1.5pt}'
+  - '\makeatletter'
+  - '\@ifundefined{Shaded}{\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}\vspace{-0.2\baselineskip}}}{\renewenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}\vspace{-0.2\baselineskip}}}'
+  - '\makeatother'
+---
+
+# CSDS 2026 -- Week 9
+\begin{remarkbox}
+\footnotesize\textit{\textbf{Remark:} Using AI to improve the table format, the grammar of answers and multicollinearity explanation for Q3(c).}
+\end{remarkbox}
+
+\medskip
+
+### Initialization
+```{r setup}
+set.seed(20260424)
+library(compstatslib)
+```
+
+\begingroup\color{gray!45}\noindent\rule{\linewidth}{0.3pt}\par\endgroup
+
+## Question 1
+We will use the `interactive_regression()` function from CompStatsLib again
+
+- Scenario 1: Consider a very narrowly dispersed set of points that have a negative or positive steep slope 
+- Scenario 2: Consider a widely dispersed set of points that have a negative or positive steep slope 
+- Scenario 3: Consider a very narrowly dispersed set of points that have a negative or positive shallow slope 
+- Scenario 4: Consider a widely dispersed set of points that have a negative or positive shallow slope
+
+```{r question1, fig.width=10, fig.height=3}
+# pts1 <- interactive_regression()
+# pts2 <- interactive_regression()
+# pts3 <- interactive_regression()
+# pts4 <- interactive_regression()
+
+# all_pts <- list(
+#   scenario1 = pts1,
+#   scenario2 = pts2,
+#   scenario3 = pts3,
+#   scenario4 = pts4
+# )
+
+# saveRDS(all_pts, "all_pts.rds")
+
+all_pts <- readRDS("all_pts.rds")
+scenario1 <- all_pts$scenario1
+scenario2 <- all_pts$scenario2
+scenario3 <- all_pts$scenario3
+scenario4 <- all_pts$scenario4
+
+par(mfrow = c(1, 4), mar = c(3, 3, 2, 1))
+plot_regr(scenario1, stats = FALSE)
+plot_regr(scenario2, stats = FALSE)
+plot_regr(scenario3, stats = FALSE)
+plot_regr(scenario4, stats = FALSE)
+```
+
+### a. Comparing scenarios 1 and 2, which do we expect to have a stronger R2 ?
+I expect `Secnario 1` to have a stronger R2 than `Scenario 2` because the points are more closely clustered around the regression line, indicating a stronger linear relationship between x and y.
+\par
+The results also confirm this expectation:
+```{r question1a}
+s1_r2 <- summary(lm(y ~ x, data = scenario1))$r.squared
+s2_r2 <- summary(lm(y ~ x, data = scenario2))$r.squared
+cat("Scenario 1 R2:", s1_r2, "\n")
+cat("Scenario 2 R2:", s2_r2)
+```
+
+### b. Comparing scenarios 3 and 4, which do we expect to have a stronger R2 ?
+I expect `Secnario 3` to have a stronger R2 than `Scenario 4` because the points are more closely clustered around the regression line, indicating a stronger linear relationship between x and y.
+\par
+The results also confirm this expectation:
+```{r question1b}
+s3_r2 <- summary(lm(y ~ x, data = scenario3))$r.squared
+s4_r2 <- summary(lm(y ~ x, data = scenario4))$r.squared
+cat("Scenario 3 R2:", s3_r2, "\n")
+cat("Scenario 4 R2:", s4_r2)
+```
+
+### c. Comparing scenarios 1 and 2, which do we expect has bigger/smaller SSE, SSR, and SST? (intuitively)
+I expect:
+
+- SSE: ***`Scenario 1` will have a smaller SSE*** than `Scenario 2` because the points are more closely clustered around the regression line, resulting in smaller residuals.
+- SSR: In this case, we expect that ***`Scenario 1` has a slightly larger SSR*** than `Scenario 2` because its fitted line explains somewhat more of the variation in y. However, since both scenarios show a steep positive linear trend, their SSR values should not differ by very much. The fitted lines pass through roughly the similar lower-left and upper-right regions, so the amount of variation explained by the regression line is fairly similar in both cases.
+- SST: I expect SST would likely be ***slightly larger in `Scenario 2`*** because SST measures the total variation in the observed y values. Although both scenarios have similar fitted trends, `Scenario 2` shows much greater scatter around the regression line, which increases the overall variability of the data.
+
+### d. Comparing scenarios 3 and 4, which do we expect has bigger/smaller SSE, SSR, and SST? (intuitively)
+I expect:
+
+- SSE: ***`Scenario 3` will have a smaller SSE*** than `Scenario 4` because the points are more closely clustered around the regression line, resulting in smaller residuals.
+- SSR: `Scenarios 3` and `4` would likely have ***similar SSR*** values because both show a shallow linear trend
+- SST: I expect SST would be ***larger in `Scenario 4`*** because SST measures the total variation in the observed y values. Although both scenarios have similar fitted trends, `Scenario 4` shows much greater scatter around the regression line, which increases the overall variability of the data.
+
+
+## Question 2
+Let’s analyze the `programmer_salaries.txt` dataset we saw in class.  
+\par
+Read the file using `read.csv("programmer_salaries.txt", sep="\t")` because the columns are separated by tabs `(\t)`.
+\smallskip
+```{r question2}
+library(data.table)
+salaries <- fread("programmer_salaries.txt", sep = "\t")
+head(salaries)
+```
+
+### a. Use the `lm()` function to estimate the regression model `Salary ~ Experience + Score + Degree`. Show the `beta coefficients`, `R2`, and the first 5 values of `fitted.values` and `residuals`
+```{r question2a_1}
+model <- lm(Salary ~ Experience + Score + Degree, data = salaries)
+
+# Beta Coefficients
+model$coefficients
+```
+```{r question2a_2}
+# R Squared
+summary(model)$r.squared
+```
+
+```{r question2a_3}
+# First 5 Fitted Values
+fitted(model)[1:5]
+```
+
+```{r question2a_4}
+# First 5 Residuals
+resid(model)[1:5]
+```
+
+### b. Use only linear algebra and the geometric view of regression to estimate the regression yourself: 
+
+- i. **Create an `X` matrix that has a first column of 1s followed by columns of the independent variables *(only show the code)***
+  ```{r question2b_1}
+  X <- as.matrix(cbind(
+    Intercept = 1,
+    Experience = salaries$Experience,
+    Score = salaries$Score,
+    Degree = salaries$Degree
+  ))
+  ```
+
+- ii. **Create a `y` vector with the Salary values *(only show the code)***
+  ```{r question2b_2}
+  y <- as.matrix(salaries$Salary)
+  ```
+
+- iii. **Compute the `beta_hat` vector of estimated regression coefficients *(show the code and values)***
+  \par
+  \begin{equation}
+  \hat{\beta} = (X^T X)^{-1} X^T y
+  \label{eq:beta_hat}
+  \end{equation}
+  ```{r question2b_3}
+  beta_hat <- solve(t(X) %*% X) %*% t(X) %*% y
+  beta_hat
+  ```
+
+- iv. **Using the above, compute a `y_hat` vector of estimated values, and a `res` vector of residuals *(show the code and the first 5 values of `y_hat` and `res`)***
+  \par
+  \begin{equation}
+  \hat{y} = X \hat{\beta}
+  \label{eq:y_hat}
+  \end{equation}
+  \begin{equation}  \varepsilon = y - \hat{y}
+  \label{eq:residuals}
+  \end{equation}
+  ```{r question2b_4}
+  y_hat <- X %*% beta_hat
+  res <- y - y_hat
+  
+  # First 5 Estimated Values
+  y_hat[1:5]
+  ```
+  ```{r question2b_4_2}
+  # First 5 Residuals
+  res[1:5]
+  ```
+
+- v. **Using only the results from (i) – (iv), compute SSR, SSE and SST *(show the code and values)***
+  \par
+  \begin{equation}
+  SSR = \sum_{i=1}^{n} (\hat{y}_i - \bar{y})^2
+  \label{eq:ssr}
+  \end{equation}
+  \begin{equation}
+  SSE = \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+  \label{eq:sse}
+  \end{equation}
+  \begin{equation}
+  SST = \sum_{i=1}^{n} (y_i - \bar{y})^2
+  \label{eq:sst}
+  \end{equation}
+  ```{r question2b_5}
+  y_bar <- mean(y)
+  
+  SSR <- sum((y_hat - y_bar)^2)
+  SSE <- sum((y - y_hat)^2)
+  SST <- sum((y - y_bar)^2)
+  
+  result_table <- data.frame(
+    Measure = c("SSR", "SSE", "SST"),
+    Value = c(SSR, SSE, SST)
+  )
+
+  knitr::kable(result_table)
+  ```
+
+
+### c. Compute R2 for in two ways, and confirm you get the same results *(show code and values)*: 
+
+- i. **Use any combination of SSR, SSE, and SST**
+  \par
+  \begin{equation}  R^2 = \frac{SSR}{SST} = 1 - \frac{SSE}{SST}
+  \label{eq:r_squared}
+  \end{equation}
+  ```{r question2c_1}
+  r_squared_1 <- SSR / SST
+  r_squared_2 <- 1 - (SSE / SST)
+  ```
+
+- ii. **Use the squared correlation of vectors `y` and `y_hat`**
+  \par
+  \begin{equation}
+  R^2 = \operatorname{cor}(y, \hat{y})^2
+  \label{eq:r_squared}
+  \end{equation}
+  ```{r question2c_2}
+  r_squared_3 <- cor(y, y_hat)^2
+  ```
+
+Below are the results from methods (i) and (ii), which confirm that they are identical:
+```{r question2c}
+r2_table <- data.frame(
+  Method = c(
+    "SSR / SST",
+    "1 - SSE / SST",
+    "cor(y, y_hat)^2"
+  ),
+  `R_squared` = c(r_squared_1, r_squared_2, r_squared_3)
+)
+
+knitr::kable(r2_table, digits = 6)
+```
+
+
+## Question 3
+We’re going to look back at the early days of global car manufacturing, when American, Japanese, and European cars competed to rule the world.
+
+| No. | Variable       | Description                                          |
+|:---:|----------------|------------------------------------------------------|
+| 1   | `mpg`          | miles-per-gallon (dependent variable)                |
+| 2   | `cylinders`    | cylinders in engine                                  |
+| 3   | `displacement` | size of engine                                       |
+| 4   | `horsepower`   | power of engine                                      |
+| 5   | `weight`       | weight of car                                        |
+| 6   | `acceleration` | acceleration ability of car                          |
+| 7   | `model_year`   | year model was released                              |
+| 8   | `origin`       | place car was designed (1: USA, 2: Europe, 3: Japan) |
+| 9   | `car_name`     | make and model names                                 |
+
+```{r question3}
+auto <- read.table("auto-data.txt", header=FALSE, na.strings = "?")
+auto <- na.omit(auto)
+names(auto) <- c("mpg", "cylinders", "displacement", "horsepower", "weight",
+                 "acceleration", "model_year", "origin", "car_name")
+```
+
+### a. Let’s first try exploring this data and problem:
+
+- i. **Visualize the data as you wish to answer the following questions (report only relevant plots)**
+  ```{r question3a_1_2}
+  par(mfrow = c(2, 4), cex.main = 0.9)
+
+  vars <- c("cylinders", "displacement", "horsepower", "weight",
+            "acceleration", "model_year", "origin")
+
+  for (v in vars) {
+    plot(
+      auto[[v]], auto$mpg,
+      xlab = v, ylab = "mpg",
+      main = paste("mpg vs", v),
+      pch = 19, cex = 0.5
+    )
+  }
+  ```
+
+- ii. **Report a correlation table of all variables, rounding to two decimal places**
+  ```{r question3a_2}
+  numeric_vars <- auto[, sapply(auto, is.numeric)]
+  correlation_matrix <- round(cor(numeric_vars), 2)
+  knitr::kable(correlation_matrix)
+  ```
+
+- iii. **From the visualizations and correlations, which variables appear to relate to `mpg`?**
+  \par
+  Among the numeric variables, `cylinders`, `displacement`, `horsepower`, and `weight` appear to have a negative relationship with `mpg`, while `model_year` show a positive relationship. The variable `origin` also seems to have a positive relationship with `mpg`.
+
+- iv. **Which relationships might not be linear? *(don’t worry about linearity for rest of this HW)***
+  \par
+  - The relationships between `mpg` and `cylinders`, `horsepower`, `weight`, and `displacement` appear to be potentially non-linear, as the scatterplots suggest some curvature.
+  - The relationship with `acceleration` appears less clearly linear because the points are more widely scattered and do not follow a strong straight-line pattern.
+  - Since `origin` is a categorical variable, its relationship with `mpg` is not naturally represented by a simple linear pattern.
+
+- v. **Are there any pairs of *independent variables* that are highly correlated *(r > 0.7)*?**
+  \par
+  Since the question asks for highly correlated pairs and does not restrict this to positive correlations only, I consider the absolute value of the correlation and identify pairs with \(|r| > 0.7\) (though the results are all positive).
+  ```{r question3a_5}
+  # Exclude the dependent variable 'mpg' from the correlation matrix
+  # focus on independent variables only
+  predictor_vars <- numeric_vars[, colnames(numeric_vars) != "mpg"]
+  predictor_corr_matrix <- round(cor(predictor_vars), 2)
+
+  high_corr_idx <- which(
+    abs(predictor_corr_matrix) > 0.7 & upper.tri(predictor_corr_matrix),
+    arr.ind = TRUE
+  )
+
+  high_corr_pairs <- data.frame(
+    Var1 = rownames(predictor_corr_matrix)[high_corr_idx[, 1]],
+    Var2 = colnames(predictor_corr_matrix)[high_corr_idx[, 2]],
+    Correlation = predictor_corr_matrix[high_corr_idx]
+  )
+
+  high_corr_pairs <- high_corr_pairs[
+    order(-abs(high_corr_pairs$Correlation)),
+  ]
+
+  knitr::kable(high_corr_pairs)
+  ```
+
+### b. Let’s create a linear regression model where mpg is dependent upon all other suitable variables
+\textcolor{gray!70}{
+  \textit{\textbf{Note:} `origin` is categorical with three levels, so use `factor(origin)` in `lm(...)` to split it into two dummy variables}
+}
+
+- i. **Which independent variables have a ‘significant’ relationship with mpg at 1% significance?**
+  ```{r question3b_1}
+  model_mpg <- lm(mpg ~ cylinders + displacement + horsepower + weight +
+                        acceleration + model_year + factor(origin),
+                  data = auto)
+  summary(model_mpg)
+  ```
+  \medskip
+  Based on the result, the independent variables that have a significant relationship with `mpg` at the 1% significance level are:
+  - `displacement`
+  - `weight`
+  - `model_year`
+  - `origin` (captured by the dummy variables created from `factor(origin)`; `factor(origin)2` represents Europe and `factor(origin)3` represents Japan, and both are statistically significant relative to the baseline category, USA)
+
+- ii. **Looking at the coefficients, is it possible to determine which independent variables are the most effective at increasing mpg? If so, which ones, and if not, why not?**
+\par
+\textcolor{gray!70}{
+  \textit{\textbf{hint:} units!}
+}
+  \par
+  It is not appropriate to determine which variables are most effective at increasing mpg by comparing the raw coefficients alone, because the predictors are measured in different units and origin is a categorical variable. The coefficients can show the direction of the relationship, but not the relative importance of the variables.
+
+### c. Let’s try to resolve some of the issues with our regression model above. 
+
+- i. **Create *fully standardized* regression results: are these slopes easier to compare?**
+\par
+\textcolor{gray!70}{
+  \textit{\textbf{Note:} consider if you should standardize `origin`}
+}
+  ```{r question3c_1}
+  auto_std <- data.frame(scale(auto[1:7]), origin = factor(auto$origin))
+  model_mpg_std <- lm(mpg ~ ., data = auto_std)
+  summary(model_mpg_std)
+  ```
+  \medskip
+  These slopes are easier to compare for the continuous predictors because they come from a standardized model. A larger absolute coefficient means a larger change in mpg in standard deviation units for a one standard deviation increase in that predictor, holding the others fixed. From this table, `weight` appears to have the strongest association in magnitude, followed by `model_year` and `displacement`.
+  \par
+  However, `origin2` and `origin3` are dummy variables, so their coefficients are not directly comparable to the standardized continuous predictors in quite the same way.
+
+- ii. **Regress `mpg` over each nonsignificant independent variable, individually. Which ones become significant when we regress `mpg` over them individually?**
+  ```{r question3c_2}
+  nonsig_vars <- c("cylinders", "horsepower", "acceleration")
+
+  for (var in nonsig_vars) {
+    cat("\n====================\n")
+    cat("Variable:", var, "\n")
+    cat("====================\n")
+    
+    model_individual <- lm(as.formula(paste("mpg ~", var)), data = auto)
+    print(summary(model_individual))
+  }
+  ```
+  \medskip
+  When regressing `mpg` over each of the nonsignificant independent variables (`cylinders`, `horsepower` and `acceleration`) individually, I found that every of them becomes significant at the 1% level. `cylinders` and `horsepower` have a stronger relationship with `mpg` with about 60% R-squared, while `acceleration` has a weaker relationship with `mpg` with about 10% R-squared.
+  \par
+  This suggests that the lack of significance in the full model for these variables may be due to multicollinearity, since these variables are highly correlated with other independent variables. As a result, their standard errors can be inflated, making it harder to detect significant relationships when other correlated predictors are included in the model.
+
+- iii. **Plot the distribution of the residuals: are they normally distributed and centered around zero?**
+  ```{r question3b_3, fig.width=9, fig.height=4}
+  res <- resid(model_mpg)
+
+  par(mfrow = c(1, 2))
+
+  hist(res,
+       probability = TRUE,
+       main = "Residual Distribution",
+       xlab = "Residuals",
+       col = "#ecf5f6",
+       border = "white")
+  lines(density(res), col = "#4646f2", lwd = 2)
+  abline(v = 0, col = "#e24545", lwd = 2, lty = 2)
+
+  qqnorm(res,
+         main = "Normal Q-Q Plot",
+         pch = 19, cex = 0.6)
+  qqline(res, col = "#e24545", lwd = 2)
+  ```
+  \medskip
+  The residuals appear to be centered around zero, since the distribution is concentrated near zero and the Q-Q plot is roughly symmetric in the middle. However, they are not exactly normally distributed, since the Q-Q plot shows noticeable deviation in the upper tail, suggesting some right-skewness or heavier upper-tail behavior.

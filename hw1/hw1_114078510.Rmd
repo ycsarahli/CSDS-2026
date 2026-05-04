@@ -1,0 +1,190 @@
+---
+output:
+  pdf_document:
+    latex_engine: xelatex
+header-includes:
+  - '\usepackage{fancyhdr}'
+  - '\usepackage{float}'
+  - '\usepackage{etoolbox}'
+  - '\pagestyle{fancy}'
+  - '\fancyhf{}'
+  - '\fancyhead[R]{ID: 114078510}'
+  - '\fancyfoot[R]{\footnotesize\thepage}'
+  - '\renewcommand{\headrulewidth}{0pt}'
+  - '\makeatletter'
+  - '\renewcommand{\section}{\@startsection{section}{1}{\z@}{0.1\baselineskip}{0.1\baselineskip}{\normalfont\Large\bfseries}}'
+  - '\makeatother'
+  - '\usepackage[most]{tcolorbox}'
+  - '\newtcolorbox{remarkbox}{colback=yellow!6,colframe=orange!55!yellow,arc=1.5mm,boxrule=0.4pt,left=4pt,right=4pt,top=2pt,bottom=1pt}'
+  - '\setlength{\OuterFrameSep}{1.5pt}'
+  - '\renewenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}\vspace{-0.2\baselineskip}}'
+  - '\makeatletter'
+  - '\preto{\@verbatim}{\topsep=0pt \partopsep=0pt \parskip=0pt \parsep=0pt}'
+  - '\makeatother'
+---
+
+## CSDS 2026 -- HW 1
+\begin{remarkbox}
+\footnotesize\textit{\textbf{Remark:} Using AI to find a more appropriate method for Question 8 and adjust RMarkdown formatting.}
+\end{remarkbox}
+
+\medskip
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.pos = "H",
+  fig.align = "center",
+  fig.show = "hold",
+  dev.args = list(pointsize = 9)
+)
+```
+
+### Load Data
+```{r load-data}
+df <- read.table("customers.txt", header = TRUE)
+head(df)
+```
+\medskip
+
+### 1. What is the 5th element in the original list of ages?
+```{r q1}
+age <- df$age
+fifth_element <- age[5]
+fifth_element
+```
+\medskip
+
+### 2. What is the fifth lowest age?
+I think "fifth lowest age" can be interpreted in two ways, depending on whether we consider duplicates:
+\smallskip
+
+*Case 1:* Under the literal interpretation, keep duplicates and sort ages in ascending order and select the fifth element.
+```{r q2_1}
+sorted_ages <- sort(age)
+fifth_lowest_age <- sorted_ages[5]
+fifth_lowest_age
+```
+
+\medskip
+
+*Case 2:* But if it reflects true ranking, it should refer to the fifth "distinct" age, which requires removing duplicates before sorting.
+```{r q2_2}
+sorted_unique_ages <- sort(unique(age))
+fifth_lowest_distinct_age <- sorted_unique_ages[5]
+fifth_lowest_distinct_age
+```
+
+\medskip
+
+### 3. Extract the five lowest ages together
+Following Q2, since the question can be interpreted either with or without removing duplicates, the result will be different under these two situations:
+\newpage
+
+*Case 1:* Sort without removing duplicates first
+```{r q3_1}
+five_lowest_ages <- sorted_ages[1:5]
+five_lowest_ages
+```
+
+\medskip
+
+*Case 2:* Sort after removing duplicates
+```{r q3_2}
+five_lowest_distinct_ages <- sorted_unique_ages[1:5]
+five_lowest_distinct_ages
+```
+
+\medskip
+
+### 4. Get the five highest ages by first sorting them in decreasing order first
+Following Q2 & Q3, the result of the "five highest" ages will also vary under these two interpretations:
+\smallskip
+
+*Case 1:* Sort in decreasing order without removing duplicates first
+```{r q4_1}
+sorted_ages_desc <- sort(age, decreasing = TRUE)
+five_highest_ages <- sorted_ages_desc[1:5]
+five_highest_ages
+```
+
+\medskip
+
+*Case 2:* Sort in decreasing order after removing duplicates
+```{r q4_2}
+sorted_unique_ages_desc <- sort(unique(age), decreasing = TRUE)
+five_highest_distinct_ages <- sorted_unique_ages_desc[1:5]
+five_highest_distinct_ages
+```
+
+\medskip
+
+### 5. What is the average (mean) age?
+```{r q5}
+mean_age <- mean(age, na.rm = TRUE)
+mean_age
+```
+\medskip
+
+### 6. What is the standard deviation of ages?
+```{r q6}
+standard_deviation_age <- sd(age, na.rm = TRUE)
+standard_deviation_age
+```
+\medskip
+
+### 7. Make a new variable called `age_diff`, with the difference between each age and the mean age
+```{r q7}
+age_diff <- age - mean_age
+head(age_diff)
+```
+\medskip
+
+### 8. What is the average “difference between each age and the mean age”?
+If we simply calculate with the raw differences, the average will be zero due to the offset of positive and negative values, which is not meaningful.
+```{r q8_1}
+mad_age_diff <- mean(age_diff, na.rm = TRUE)
+mad_age_diff
+```
+
+\medskip
+
+Instead, I would like to use *MAD* to measure the average difference, which can better reflect the true deviation magnitude.
+
+\smallskip
+
+*MAD (Mean Absolute Deviation)*
+
+\begingroup\footnotesize\color{gray}Reference: \url{https://vocus.cc/article/6767df46fd897800010f0954}\par\endgroup
+
+$$
+\text{MAD} = \frac{1}{n}\sum_{i=1}^{n}\left|age_i - \bar{age}\right|
+$$
+
+```{r q8_2}
+mad_age_diff <- mean(abs(age_diff), na.rm = TRUE)
+mad_age_diff
+```
+\medskip
+
+### 9. Visualize the raw data
+
+**(a) Histogram**
+```{r q9a, fig.width=7, fig.height=5, out.width='85%'}
+hist(age, main = "Histogram of ages", xlab = "Age")
+```
+
+
+**(b) Density plot**
+```{r q9b, fig.width=7, fig.height=4, out.width='85%'}
+plot(density(age), main = "Density plot of ages")
+```
+
+
+**(c) Boxplot + stripchart**
+```{r q9c, fig.width=7, fig.height=5, out.width='85%'}
+boxplot(age, horizontal = TRUE, main = "Boxplot of ages", xlab = "Age")
+stripchart(age, method = "stack", add = TRUE)
+```

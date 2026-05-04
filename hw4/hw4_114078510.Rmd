@@ -1,0 +1,539 @@
+---
+output:
+  pdf_document:
+    latex_engine: xelatex
+header-includes:
+  # Packages
+  - '\usepackage{fancyhdr}'
+  - '\usepackage{float}'
+  - '\usepackage{etoolbox}'
+  - '\usepackage{framed}'
+  - '\usepackage[most]{tcolorbox}'
+  # Page style
+  - '\pagestyle{fancy}'
+  - '\fancyhf{}'
+  - '\fancyhead[R]{ID: 114078510}'
+  - '\fancyfoot[R]{\footnotesize\thepage}'
+  - '\renewcommand{\headrulewidth}{0pt}'
+  - '\setlength{\leftmargini}{1.5em}'
+  - '\setlength{\leftmarginii}{1.5em}'
+  # Section and spacing
+  - '\makeatletter'
+  - '\renewcommand{\section}{\@startsection{section}{1}{\z@}{0.1\baselineskip}{0.1\baselineskip}{\normalfont\Large\bfseries}}'
+  - '\preto{\@verbatim}{\topsep=0pt \partopsep=0pt \parskip=0pt \parsep=0pt}'
+  - '\AtBeginEnvironment{itemize}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}\setlength{\topsep}{0pt}}'
+  - '\makeatother'
+  # Custom boxes/environments
+  - '\newtcolorbox{remarkbox}{colback=yellow!6,colframe=orange!55!yellow,arc=1.5mm,boxrule=0.4pt,left=4pt,right=4pt,top=2pt,bottom=1pt}'
+  - '\newtcolorbox{recallbox}{colback=gray!6,colframe=black!60,arc=1.5mm,boxrule=0.4pt,left=4pt,right=4pt,top=2pt,bottom=1pt}'
+  - '\setlength{\OuterFrameSep}{1.5pt}'
+  - '\makeatletter'
+  - '\@ifundefined{Shaded}{\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}\vspace{-0.2\baselineskip}}}{\renewenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}\vspace{-0.2\baselineskip}}}'
+  - '\makeatother'
+---
+
+# CSDS 2026 -- HW 4
+\begin{remarkbox}
+\footnotesize\textit{\textbf{Remark:} Using AI to refine plots formatting, improve markdown structure and the grammar of written answers.}
+\end{remarkbox}
+
+\medskip
+
+### Initialization
+```{r setup}
+set.seed(20260318)
+library(ggplot2)
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.pos = "H",
+  fig.align = "center",
+  fig.show = "hold",
+  dev.args = list(pointsize = 9)
+)
+```
+
+\begingroup\color{gray!45}\noindent\rule{\linewidth}{0.3pt}\par\endgroup
+
+## Question 1
+Verizon, a major U.S. telecommunications company, has historically held a monopoly in certain regions. To ensure service quality, the New York Public Utilities Commission (PUC) monitors customer repair times. The dataset *verizon.csv* contains a recent sample of these repair times collected in New York.
+
+```{r load_data}
+verizon <- read.csv("verizon.csv")
+head(verizon)
+repair_times <- verizon$Time
+```
+
+\par
+
+### (a) Imagine that Verizon claims that they take 7.6 minutes to repair phone services for its customers on average. The PUC seeks to verify this claim at 99% confidence (i.e., significance \( \alpha = 1\% \)) using *traditional statistical methods*.
+
+i. **Visualize the distribution of Verizon’s repair times, marking the mean with a vertical line**
+    \par
+    ```{r q1a_1, fig.width=7, fig.height=4, out.width='80%'}
+    # --- predefine format for the plot ---
+    theme_set(theme_minimal())
+
+    base_theme <- theme(
+      plot.title = element_text(hjust = 0.5),
+      legend.position = c(0.94, 0.95),
+      legend.justification = c(1, 1),
+      legend.title = element_blank(),
+      plot.margin = margin(8, 12, 6, 8)
+    )
+
+    # extend the x-axis a bit to show smoother density
+    density_df <- with(
+      density(repair_times, from = -4, to = max(repair_times)),
+      data.frame(Time = x, Density = y)
+    )
+    
+    ggplot(data = verizon, aes(x = Time)) +
+      geom_line(
+        data = density_df,
+        aes(x = Time, y = Density),
+        color = "#2f5aa8",
+        linewidth = 0.8,
+        inherit.aes = FALSE
+      ) +
+      geom_vline(
+        aes(xintercept = mean(Time), color = "Mean"),
+        linewidth = 0.8, lty = "dashed",
+        key_glyph = "path"
+      ) +
+      scale_color_manual(values = c(Mean = "#d46a3a"), name = NULL) +
+      coord_cartesian(xlim = c(-3, max(repair_times))) +
+      labs(title = "Distribution of Verizon Repair Times",
+          x = "Time", y = "Density") +
+      base_theme
+    ```
+
+ii. **Given what the PUC wishes to test, how would you write the hypothesis? *(not graded)***
+    \par
+    Since the PUC wants to verify Verizon's claim about the average repair time, we would set up the two-sided hypothesis test as follows:
+    - $H_{null}$: average repair time = 7.6 minutes
+    - $H_{alt}$: average repair time $\neq$ 7.6 minutes
+  \par
+iii. **Estimate the population mean, and the 99% confidence interval (CI) of this estimate.**
+    \par
+      ```{r q1a_3}
+      sample_mean <- mean(repair_times)
+      sample_sd <- sd(repair_times)
+      sample_size <- length(repair_times)
+      cat("Sample Size:", sample_size)
+
+      sample_se <- (sample_sd / sqrt(sample_size))
+      
+      # large df (1686) -> t \approx 2.58
+      ci_99 <- sample_mean + c(-1, 1) * 2.58 * sample_se
+      cat("Sample mean:", sample_mean, "\n99% CI:", ci_99[1], " ~ ", ci_99[2])
+      ```
+  \par
+iv. **Find the t-statistic and p-value of the test**
+    \par
+      ```{r q1a_4}
+      time_hyp <- 7.6
+      df <- sample_size - 1
+      t_stat <- (sample_mean - time_hyp) / sample_se
+      p_value <- 2 * (1 - pt(abs(t_stat), df = df))
+
+      cat("t-statistic:", t_stat, "\np-value:", p_value)
+      ```
+  \par
+v. **Briefly describe how these values relate to the Null distribution of t *(not graded)***
+    \par
+    \footnotesize \textit{Note:} The graph below helps illustrate the relationship between these values and the null distribution of \( t \). Since this question is not graded, I do not display the R code here, in order to keep the report concise and focused on the main results.
+    ```{r q1a_5_plot, fig.width=6, fig.height=4, out.width='70%', echo=FALSE}
+    par(mar = c(3.2, 3.5, 0.6, 0.6), xaxs = "i", yaxs = "i")
+
+    x_grid <- seq(-6, 6, length.out = 1000)
+    y_null <- dt(x_grid, df = df)
+    y_obs <- dnorm(x_grid, mean = t_stat, sd = 1)
+
+    left_tail <- x_grid <= -abs(t_stat)
+    right_tail <- x_grid >=  abs(t_stat)
+
+    # null distribution
+    plot(x_grid, y_null, type = "l", lwd = 2,
+      col = "#2f5aa8",
+      xlab = "t", ylab = "Density",
+      xlim = c(-6, 6), ylim = c(0, max(y_null, y_obs) * 1.08),
+      bty = "l"
+    )
+
+    # observed distribution
+    lines(
+      x_grid, y_obs,
+      col = "#d46a3a",
+      lty = 2,
+      lwd = 2
+    )
+
+    # shade tails (p-value)
+    polygon(
+      c(x_grid[left_tail], rev(x_grid[left_tail])),
+      c(y_null[left_tail], rep(0, sum(left_tail))),
+      col = adjustcolor("#2f5aa8", alpha.f = 0.35),
+      border = NA
+    )
+
+    polygon(
+      c(x_grid[right_tail], rev(x_grid[right_tail])),
+      c(y_null[right_tail], rep(0, sum(right_tail))),
+      col = adjustcolor("#2f5aa8", alpha.f = 0.35),
+      border = NA
+    )
+
+    # supporting lines
+    segments(0, 0, 0, dt(0, df), col = "#2f5aa8", lwd = 1.3)
+    segments(
+      t_stat, 0,
+      t_stat, dnorm(t_stat, mean = t_stat, sd = 1),
+      col = "#d46a3a", lwd = 1.3
+    )
+
+    legend(
+      x = -5.7, y = max(y_null, y_obs) * 1.03,
+      legend = c("Null dist.", "Observed dist.", "t-stat"),
+      col = c("#2f5aa8", "#d46a3a", "#d46a3a"),
+      lty = c(1, 2, 1),
+      lwd = c(2, 2, 1.3),
+      bty = "n"
+    )
+    ```
+
+    \par
+    Under the null hypothesis, the test statistic follows a t-distribution centered at 0. The observed t-statistic indicates how far the sample mean is from 7.6 in standard error units. The p-value is the combined area in the two tails. If the observed t-statistic falls in this extreme region, the result is too unlikely under the null hypothesis and we reject it.
+
+vi. **What is your conclusion about the company’s claim from this t-statistic, and *why*?**
+    \par
+    At the ***99% confidence level***, we would ***not reject*** Verizon’s claim because the p-value (0.01053068) is slightly greater than 0.01, which means that we do not have enough evidence to conclude that the average repair time is different from 7.6 minutes.
+
+
+### (b) Let’s re-examine Verizon’s claim that they take no more than 7.6 minutes on average, but this time using bootstrapped testing:
+We will use ***3000 bootstrap resamples*** to obtain a stable estimate of the sampling distribution.
+
+i. ***Bootstrapped Percentile*: Estimate the bootstrapped 99% CI of the population mean**
+    \par
+    ```{r q1b_1}
+    n_boot <- 3000
+    resampled_means <- replicate(n_boot, mean(sample(repair_times, replace = TRUE)))
+    mean_ci_boot <- quantile(resampled_means, probs = c(0.005, 0.995))
+    mean_ci_boot
+    ```
+    \medskip
+ii. ***Bootstrapped Difference of Means*: What is the 99% CI of the bootstrapped \underline{difference} between the sample mean and the hypothesized mean?**
+    \par
+    ```{r q1b_2}
+    boot_mean_diffs <- function(sample0, mean_hyp) {
+      resample <- sample(sample0, length(sample0), replace = TRUE)
+      mean(resample) - mean_hyp
+    }
+
+    mean_diffs <- replicate(n_boot, boot_mean_diffs(repair_times, time_hyp))
+    diff_ci_boot <- quantile(mean_diffs, probs = c(0.005, 0.995))
+    diff_ci_boot
+    ```
+    \medskip
+iii. **Bootstrapped t-statistic: What is the 99% CI of the bootstrapped \underline{t-statistic} of the sample mean versus the hypothesized mean?**
+      \par
+      ```{r q1b_3}
+      boot_t_stat <- function(sample0, mean_hyp) {
+        resample <- sample(sample0, length(sample0), replace = TRUE)
+        diff <- mean(resample) - mean_hyp
+        se <- sd(resample) / sqrt(length(resample))
+        diff / se
+      }
+
+      t_boots <- replicate(n_boot, boot_t_stat(repair_times, time_hyp))
+      t_ci_boot <- quantile(t_boots, probs = c(0.005, 0.995))
+      t_ci_boot
+      ```
+      \medskip
+iv. **Plot the distribution of the three bootstraps above on separate plots; draw vertical lines showing the lower/upper bounds of their respective 99% confidence intervals.**
+    \par
+    We add an extra reference line and a shaded rejection region to make it easier to see whether the null hypothesis would be rejected.
+
+    ```{r q1b_4, fig.show='hold', fig.width=3, fig.height=5, out.width='30%', fig.align='center'}
+    plot_boot_density <- function(
+      x,
+      ci_bounds,
+      null_val,
+      title,
+      x_label,
+      line_color = "#2f5aa8",
+      alternative = "neq",
+      cutoff_label = "99% CI"
+	    ) {
+        density_df <- with(density(x), data.frame(value = x, density = y))
+        p <- ggplot()
+
+        # adaptive rejection area
+        reject_df <- if (alternative == "neq") {
+          list(
+            left = density_df[density_df[["value"]] <= ci_bounds[1], ],
+            right = density_df[density_df[["value"]] >= ci_bounds[2], ]
+          )
+        } else {
+          list(left = density_df[density_df[["value"]] <= ci_bounds, ])
+        }
+
+        for (i in seq_along(reject_df)) {
+          p <- p + geom_area(
+            data = reject_df[[i]],
+            aes(
+              x = .data[["value"]],
+              y = .data[["density"]],
+              fill = "Reject region"
+            ),
+            alpha = 0.25,
+            show.legend = FALSE
+          )
+        }
+
+        p +
+        # distribution
+        geom_line(
+          data = density_df,
+          aes(
+            x = .data[["value"]],
+            y = .data[["density"]]
+          ),
+          color = line_color,
+          linewidth = 1,
+          show.legend = FALSE
+        ) +
+        # confidence interval
+        geom_vline(
+          data = data.frame(xint = ci_bounds),
+          aes(xintercept = .data[["xint"]], color = cutoff_label),
+          linetype = "dashed",
+          linewidth = 0.8,
+          key_glyph = "path"
+        ) +
+        # null hypothesis
+        geom_vline(
+          data = data.frame(xint = null_val),
+          aes(xintercept = .data[["xint"]], color = "null"),
+          linetype = "solid",
+          linewidth = 0.8,
+          key_glyph = "path"
+        ) +
+        scale_color_manual(
+          name = NULL,
+          values = c(
+            "99% CI" = "#d46a3a",
+            "99% lower bound" = "#d46a3a",
+            "null" = "#a0a0a0"
+          )
+        ) +
+        scale_fill_manual(
+          name = NULL,
+          values = c("Reject region" = "#d46a3a")
+        ) +
+        guides(color = guide_legend(override.aes = list(linewidth = 0.8))) +
+        labs(title = title, x = x_label, y = "Density") +
+        base_theme
+	    }
+
+	    plot_boot_density(
+	      resampled_means, mean_ci_boot, time_hyp,
+	      "(i) Bootstrap Means", "Bootstrap Mean"
+	    )
+
+	    plot_boot_density(
+	      mean_diffs, diff_ci_boot, 0,
+	      "(ii) Bootstrap Mean Differences", "Mean Difference",
+	      "#5f7c1b"
+	    )
+
+	    plot_boot_density(
+	      t_boots, t_ci_boot, 0,
+	      "(iii) Bootstrap t-statistics", "Bootstrap t-statistic",
+	      "#7b4aa8"
+	    )
+    ```
+
+v. **Does the bootstrapped approach agree with the traditional t-test in part [a]?**
+    \par
+    The bootstrap result is consistent with the traditional t-test. The bootstrap means are centered around 8.5, which is higher than the hypothesized mean of 7.6. And the 99% confidence intervals for both the mean difference and the t-statistics do not include 0, indicating that the sample mean differs from the hypothesized mean and leading us to reject the null hypothesis at the 1% significance level.
+
+
+### (c) **Finally, imagine that Verizon notes that the distribution of repair times is highly skewed by outliers, and feel that testing the mean is not fair because the mean is sensitive to outliers. They argue that the median is a more fair test, and claim that the median repair time is no more than 3.5 minutes at 99% confidence (i.e., significance \( \alpha = 1\% \)).**
+Adjust the hypothesis to a one-sided test as follows:
+
+- $H_{null}$: median repair time $\le$ 3.5 minutes
+- $H_{alt}$: median repair time > 3.5 minutes
+
+i. ***Bootstrapped Percentile*: Estimate the bootstrapped 99% CI of the population \underline{median}**
+    \par
+    ```{r q1c_1, results='asis'}
+    resampled_medians <- replicate(
+      n_boot, median(sample(repair_times, replace = TRUE))
+    )
+    median_ci_boot <- quantile(resampled_medians, probs = 0.01)
+    cat(
+      "99% Bootstrap CI (Median): $[",
+      median_ci_boot,
+      ", \\infty)$\n\n",
+      sep = ""
+    )
+    ```
+    \medskip
+
+ii. ***Bootstrapped Difference of Medians*: What is the 99% CI of the bootstrapped \underline{difference} between the sample median and the hypothesized median?**
+    \par
+    ```{r q1c_2, results='asis'}
+    boot_median_diffs <- function(sample0, median_hyp) {
+      resample <- sample(sample0, length(sample0), replace = TRUE)
+      median(resample) - median_hyp
+    }
+
+    median_hyp <- 3.5
+    median_diffs <- replicate(n_boot, boot_median_diffs(repair_times, median_hyp))
+    median_diff_ci_boot <- quantile(median_diffs, probs = 0.01)
+    cat(
+      "99% Bootstrap CI (Median Diff): $[",
+      median_diff_ci_boot,
+      ", \\infty)$\n\n",
+      sep = ""
+    )
+    ```
+    \medskip
+
+iii. **Plot distribution the two bootstraps above on two separate plots (note that we are not using a test statistic for the median).**
+      \par
+      ```{r q1c_3, fig.show='hold', fig.width=5.7, fig.height=4, out.width='49%', fig.align='left'}
+      plot_boot_density(
+        resampled_medians, median_ci_boot, median_hyp,
+        "(i) Bootstrap Medians", "Bootstrap Median",
+        alternative = "greater",
+        cutoff_label = "99% lower bound"
+      )
+
+      plot_boot_density(
+        median_diffs, median_diff_ci_boot, 0,
+        "(ii) Bootstrap Median Differences", "Median Difference",
+        "#5f7c1b",
+        alternative = "greater",
+        cutoff_label = "99% lower bound"
+      )
+      ```
+
+iv. **What is your conclusion about Verizon’s claim about the median, and *why*?**
+    \par
+    The bootstrap analysis does not provide sufficient evidence to reject Verizon’s claim. The 99\% lower bound for the median is about 3.22, which is still below 3.5, and the 99\% lower bound for the median difference is about -0.28, which is still below 0. Therefore, we cannot conclude at the 1\% significance level that the population median repair time is greater than 3.5 minutes.
+
+
+## Question 2
+Run `interactive_t_test()` from the `compstatslib` package to interactively visualize the null and alternative t-statistic distributions, along with significance level, power, and error types.
+
+```{r q2}
+library(compstatslib)
+# interactive_t_test()
+```
+
+\begin{recallbox}
+\textbf{Recall the form of the t-test statistic:}
+
+\begin{equation}
+t = \frac{\bar{x} - \mu_0}{s / \sqrt{n}}
+\tag{1}
+\end{equation}
+
+\smallskip
+
+\textbf{Hypothesis tests are affected by several key factors:}
+\begin{itemize}
+\setlength{\itemsep}{1pt}
+\setlength{\parskip}{0pt}
+\setlength{\parsep}{0pt}
+\setlength{\topsep}{2pt}
+\item \textbf{diff}: the difference we wish to test, \( \bar{x} - \mu_0 \)
+\item \textbf{sd}: the standard deviation of the sample data, \( s \)
+\item \textbf{n}: the sample size
+\item \textbf{alpha}: the significance level of the test (e.g., \( \alpha = 0.05 \) corresponds to a 95\% confidence level)
+\end{itemize}
+
+\end{recallbox}
+
+- $H_{null}$: The mean usage time of the new smartwatch $\le$ previous smartwatch.
+- $H_{alt}$: The mean usage time of the new smartwatch > previous smartwatch.
+
+After collecting data from just **n=50** customers, he informs you that he has found **diff=0.3** and **sd=2.9**.
+Your colleague believes that we cannot reject the null hypothesis at **alpha of 5%**.
+
+### (a) You discover that your colleague wanted to target the general population of Taiwanese users of the product. However, he only collected data from a pool of young consumers, and missed many older customers who you suspect might use the product much less every day.
+
+i. **Would this scenario create systematic or random error (or both or neither)?**
+    \par
+    This scenario creates ***both systematic and random error***. ***Systematic error*** arises because the sample includes only younger consumers and is not representative of the target population. ***Random error*** exists because the sample of 50 users is only one possible sample and the sample mean may vary due to sampling variability.
+    \medskip
+ii. **Which part of the t-statistic or significance (diff, sd, n, alpha) would be affected?**
+    \par
+    The part most affected is **`diff`**. Because the sample includes only younger consumers who are likely to use the smartwatch more than older users, excluding older customers may cause the sample mean to be higher than the true population mean, which in turn affects the estimated difference.
+    \medskip
+iii. **Will it increase or decrease our power to reject the null hypothesis?**
+    \par
+    It would ***increase the power*** to reject the null hypothesis. Excluding older consumers may bias the sample mean upward, increasing the estimated difference and making it easier for the test statistic to exceed the rejection threshold. As shown in `interactive_t_test()`, when `diff` becomes larger, the t-statistic is more likely to fall into the rejection region.
+    \medskip
+iv. **Which kind of error (Type I or Type II) becomes more likely because of this scenario?**
+    \par
+    A ***Type I error*** becomes more likely, since the biased sample makes the test statistic more likely to fall in the rejection region even when the null hypothesis is true.
+
+
+### (b) You find that 20 of the respondents are reporting data from the wrong wearable device, and should not have been in the sample. These 20 people are just like the others in every other respect.
+\newpage
+i. **Would this scenario create systematic or random error (or both or neither)?**
+    \par
+    This scenario creates ***random error***. The 20 respondents were included by mistake, but they are otherwise similar to the rest of the sample, so the error does not introduce systematic bias but only increases random variation in the sample.
+    \medskip
+ii. **Which part of the t-statistic or significance (diff, sd, n, alpha) would be affected?**
+    \par
+    The most clearly affected component is ***n (sample size)***, since the 20 incorrect respondents should be removed from the sample. If they were mistakenly kept in the dataset, the ***sample standard deviation (sd)*** could also be affected due to additional random variation.
+    \medskip
+iii. **Will it increase or decrease our power to reject the null hypothesis?**
+    \par
+    The ***power would decrease*** in either case. If the incorrect respondents are removed, the sample size decreases, increasing the standard error. If the incorrect data are kept, the increased variability raises the standard deviation. In both situations the test statistic becomes smaller, making rejection of the null hypothesis less likely.
+    \medskip
+iv. **Which kind of error (Type I or Type II) becomes more likely because of this scenario?**
+    \par
+    A ***Type II error*** becomes more likely. Because the sample size decreases / variability increases, the test statistic becomes smaller, making it harder to reject the null hypothesis even when it is false.
+    
+
+### (c) A very annoying professor visiting your company has criticized your colleague’s “95% confidence” criteria, and has suggested relaxing it to just 90%.
+i. **Would this scenario create systematic or random error (or both or neither)?**
+    \par
+    ***Neither***, since changing the confidence level only affects the significance level used in the hypothesis test and does not alter the data or the sampling process.
+    \medskip
+ii. **Which part of the t-statistic or significance (diff, sd, n, alpha) would be affected?**
+    \par
+    The affected component is ***alpha***, since changing the confidence level from 95% to 90% increases the significance level used in the hypothesis test.
+    \medskip
+iii. **Will it increase or decrease our power to reject the null hypothesis?**
+    \par
+    It would ***increase the power*** to reject the null hypothesis. As the significance level increases, the rejection region is enlarged, making rejection more likely.
+    \medskip
+iv. **Which kind of error (Type I or Type II) becomes more likely because of this scenario?**
+    \par
+    A ***Type I error*** becomes more likely, since increasing the significance level enlarges the rejection region and makes it more likely to reject the null hypothesis when it is actually true.
+
+
+### (d) Your colleague has measured usage times on five weekdays and taken a daily average. But you feel this will underreport usage for younger people who are very active on weekends, whereas it over-reports usage of older users.
+i. **Would this scenario create systematic or random error (or both or neither)?**
+    \par
+    Measuring usage only on weekdays may introduce a ***systematic bias***. Younger people tend to use the device more on weekends, so excluding weekend data underestimates their true average usage, while older users may use it less on weekends, leading to an overestimation of their overall average usage.
+    \medskip
+ii. **Which part of the t-statistic or significance (diff, sd, n, alpha) would be affected?**
+    \par
+    The part most affected is ***diff***, since measuring only weekday usage may bias the sample mean, which affects the estimated difference between the sample mean and the hypothesized mean.
+    \medskip
+iii. **Will it increase or decrease our power to reject the null hypothesis?**
+    \par
+    The effect on power is ***uncertain***, since the measurement may underestimate usage for younger users but overestimate usage for older users, the sample mean could shift in either direction, potentially increasing or decreasing the power depending on the sample composition.
+    \medskip
+iv. **Which kind of error (Type I or Type II) becomes more likely because of this scenario?**
+    \par
+    The effect is also ***uncertain***, since the bias could shift the sample mean in either direction, potentially increasing either Type I or Type II error.

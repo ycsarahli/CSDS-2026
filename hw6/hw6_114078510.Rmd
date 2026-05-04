@@ -1,0 +1,381 @@
+---
+output:
+  pdf_document:
+    latex_engine: xelatex
+header-includes:
+  # Packages
+  - '\usepackage{fancyhdr}'
+  - '\usepackage{float}'
+  - '\usepackage{etoolbox}'
+  - '\usepackage{framed}'
+  - '\usepackage[most]{tcolorbox}'
+  # Page style
+  - '\pagestyle{fancy}'
+  - '\fancyhf{}'
+  - '\fancyhead[R]{ID: 114078510}'
+  - '\fancyfoot[R]{\footnotesize\thepage}'
+  - '\renewcommand{\headrulewidth}{0pt}'
+  - '\setlength{\leftmargini}{1.5em}'
+  - '\setlength{\leftmarginii}{1.5em}'
+  # Section and spacing
+  - '\makeatletter'
+  - '\renewcommand{\section}{\@startsection{section}{1}{\z@}{0.1\baselineskip}{0.1\baselineskip}{\normalfont\Large\bfseries}}'
+  - '\preto{\@verbatim}{\topsep=0pt \partopsep=0pt \parskip=0pt \parsep=0pt}'
+  - '\AtBeginEnvironment{itemize}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}\setlength{\topsep}{0pt}}'
+  - '\makeatother'
+  # Custom boxes/environments
+  - '\newtcolorbox{remarkbox}{colback=yellow!6,colframe=orange!55!yellow,arc=1.5mm,boxrule=0.4pt,left=4pt,right=4pt,top=2pt,bottom=1pt}'
+  - '\newtcolorbox{recallbox}{colback=gray!6,colframe=black!60,arc=1.5mm,boxrule=0.4pt,left=4pt,right=4pt,top=2pt,bottom=1pt}'
+  - '\setlength{\OuterFrameSep}{1.5pt}'
+  - '\makeatletter'
+  - '\@ifundefined{Shaded}{\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}\vspace{-0.2\baselineskip}}}{\renewenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}\vspace{-0.2\baselineskip}}}'
+  - '\makeatother'
+---
+
+# CSDS 2026 -- HW 6
+\begin{remarkbox}
+\footnotesize\textit{\textbf{Remark:} Using AI to refine plots formatting, improve markdown structure and the grammar of written answers.}
+\end{remarkbox}
+
+\medskip
+
+### Initialization
+```{r setup}
+set.seed(20260401)
+library(ggplot2)
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.pos = "H",
+  fig.align = "center",
+  fig.show = "hold",
+  dev.args = list(pointsize = 9)
+)
+```
+
+\begingroup\color{gray!45}\noindent\rule{\linewidth}{0.3pt}\par\endgroup
+
+\par
+There are four alternative media that share the same informational content, which corresponds to `pls-media.zip` that contains `pls-media[1-4].csv`:
+
+1. video [animation + audio] (click to see video): A fully animated video with audio narration
+2. video [pictures + audio]: Video of sequence of still pictures (not-animated) with audio narration
+3. webpage [pictures + text]: Static web page with still pictures (no video) and accompanying text narration (no audio)
+4. webpage [text only]: Static web page of text narration (no audio) but no pictures
+
+Remarks of the experiment design:
+
+- Viewers were surveyed about their thoughts, including a question (labeled `INTEND.0`), answered on 7 point scale: 1=strongly disagree; 4=neutral; 7=strongly agree
+- The number in the filename corresponds to the type of media listed above
+- The health researcher wants to conduct her tests at 95% confidence (5% significance)
+
+```{r load_data}
+zip_path <- "pls-media.zip"
+csv_files <- unzip(zip_path, list = TRUE)$Name
+
+# Combine all csv files into a single data frame
+pls_media <- do.call(
+  rbind,
+  lapply(csv_files, function(file) {
+    df <- read.csv(unz(zip_path, file))
+    names(df)[names(df) == "INTEND.0"] <- "intend"
+    df
+  })
+)
+
+pls_media$media <- factor(pls_media$media)
+```
+
+## Question 1
+Explore and describe the data and develop some early intuitive thoughts:
+
+### (a) What are the means of viewers’ intentions to share (INTEND.0) on each of the four media types?
+```{r q1a}
+intent_means <- aggregate(intend ~ media, data = pls_media, FUN = mean)
+intent_means
+```
+
+### (b) Visualize the distribution and mean of intention to share, across all four media.
+```{r q1b, out.width='80%', fig.width=8, fig.height=5}
+theme_set(theme_minimal())
+base_theme <- theme(
+  plot.title = element_text(hjust = 0.5),
+  legend.position = c(0.99, 0.99),
+  legend.justification = c(1, 1),
+  legend.title = element_blank(),
+  legend.background = element_blank(),
+  legend.box.background = element_blank(),
+  legend.key = element_blank(),
+  plot.margin = margin(8, 12, 6, 8)
+)
+
+ggplot(pls_media, aes(x = intend, y = media, fill = media, color = media)) +
+  geom_boxplot(
+    width = 0.6,
+    alpha = 0.2,
+    outlier.shape = NA,
+    show.legend = FALSE
+  ) +
+  geom_jitter(
+    width = 0,
+    height = 0.18,
+    shape = 0,
+    alpha = 0.7,
+    size = 2,
+    show.legend = FALSE
+  ) +
+  geom_vline(
+    aes(xintercept = mean(pls_media$intend), linetype = "Overall mean"),
+    color = "gray25",
+    linewidth = 0.8,
+    inherit.aes = FALSE,
+    key_glyph = draw_key_path
+  ) +
+  scale_y_discrete(
+    limits = c("4", "3", "2", "1"),
+    labels = c(
+      "1" = "1: video [animation + audio]",
+      "2" = "2: video [pictures + audio]",
+      "3" = "3: webpage [pictures + text]",
+      "4" = "4: webpage [text only]"
+    )
+  ) +
+  scale_fill_manual(values = c("red", "orange", "limegreen", "cornflowerblue")) +
+  scale_color_manual(values = c("red", "orange", "limegreen", "cornflowerblue")) +
+  scale_linetype_manual(values = c("Overall mean" = "solid")) +
+  labs(
+    title = "Distribution of Intention to Share by Media Type",
+    x = "Intention to Share",
+    y = "Media Type"
+  ) +
+  base_theme
+```
+
+### (c) From the visualization alone, do you feel that media type makes a difference on intention to share?
+Based on the plot, the mean intention to share appears fairly similar across most media types. Although *video [pictures + audio]* seems to have a slightly lower average level, it is still not very far from the others. Overall, the visualization alone does not suggest a strong or obvious difference in intention to share among the four media types.
+
+
+
+## Question 2
+Try traditional one-way ANOVA:
+
+### (a) State the null and alternative hypotheses when comparing INTEND.0 across four groups in ANOVA
+- $H_{null}$: mean intention to share is the ***same*** across all four media types
+- $H_{alt}$: mean intention to share is ***not the same*** across all four media types
+
+### (b) Compute the F-statistic ourselves:
+
+i. **Show the code and results of computing MSTR, MSE, and F**
+    - **between-treatments estimate of variance**
+      \par
+      \begin{equation}
+      \mathrm{MSTR}
+      = \frac{\mathrm{SSTR}}{df_{\mathrm{MSTR}}}
+      = \frac{\sum_{j=1}^{k} n_j \left(\bar{x}_j - \bar{x}\right)^2}{k - 1}
+      \end{equation}
+      \par
+    - **within-treatments estimate of variance**
+      \par
+      \begin{equation}
+      \mathrm{MSE}
+      = \frac{\mathrm{SSE}}{df_{\mathrm{MSE}}}
+      = \frac{\sum_{j=1}^{k} (n_j - 1)s_j^2}{N - k}
+      \end{equation}
+      \par
+
+    \begin{equation}
+    F
+    = \frac{\mathrm{MSTR}}{\mathrm{MSE}}
+    = \frac{\text{treatment variance} + \text{error variance}}{\text{error variance}}
+    \end{equation}
+
+    \bigskip
+
+    \begin{minipage}[t]{0.48\linewidth}
+    \centering
+    \begin{tabular}{ll}
+    \hline
+    Symbol & Meaning \\
+    \hline
+    $N$ & total sample size \\
+    $n_j$ & sample size of group $j$ \\
+    $k$ & number of treatment groups \\
+    \hline
+    \end{tabular}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.48\linewidth}
+    \centering
+    \begin{tabular}{ll}
+    \hline
+    Symbol & Meaning \\
+    \hline
+    $\bar{x}$ & overall sample mean \\
+    $\bar{x}_j$ & sample mean of group $j$ \\
+    $s_j^2$ & sample variance of group $j$ \\
+    \hline
+    \end{tabular}
+    \end{minipage}
+
+    \bigskip
+
+    ```{r q2b_i}
+    intend <- pls_media$intend
+    media <- pls_media$media
+
+    # sample size information
+    total_n <- length(intend)
+    k <- nlevels(media)
+    overall_mean <- mean(intend)
+
+    # SSTR
+    group_n <- tapply(intend, media, length)
+    group_mean <- tapply(intend, media, mean)
+    sstr <- sum(group_n * (group_mean - overall_mean)^2)
+
+    # SSE
+    sse <- sum(
+      tapply(intend, media, function(x) sum((x - mean(x))^2))
+    )
+
+    # MSTR, MSE, and F
+    df_mstr <- k - 1
+    df_mse <- total_n - k
+    mstr <- sstr / df_mstr
+    mse <- sse / df_mse
+    f_stat <- mstr / mse
+
+    result <- c(MSTR = mstr, MSE = mse, F = f_stat)
+    result
+    ```
+
+ii. **Compute the p-value of F, from the null F-distribution; is the F-value significant? If so, state your conclusion for the hypotheses.**
+    ```{r q2b_ii}
+    p_value <- pf(f_stat, df_mstr, df_mse, lower.tail = FALSE)
+    p_value
+    ```
+
+    The p-value is 0.05289015, which is above the 0.05 significance threshold we set in the experiment. Therefore, we fail to reject the null hypothesis. This means that we do not have sufficient evidence to conclude that there is a significant difference in mean intention to share across the four media types based on this ANOVA test.
+
+### (c) Conduct the same one-way ANOVA using the `aov()` function in R – confirm that you got similar results.
+```{r q2c}
+anova_model <- aov(intend ~ factor(media))
+summary(anova_model)
+```
+
+We can find that the result from the `aov()` function is consistent with our manual calculations.
+
+### (d) Conduct a post-hoc Tukey test (feel free to use the `TukeyHSD()` function included in base R) to see if *any pairs of media have significantly different means* – what do you find?
+```{r q2d}
+TukeyHSD(anova_model, conf.level = 0.05)
+```
+
+The results suggest that media type 2 tends to have a lower mean intention to share than media types 1, 3, and 4. However, none of the adjusted p-values is below 0.05, so there is no statistically significant evidence of pairwise differences among the four media types at the 5% significance level.
+
+### (e) Do you feel the classic requirements of one-way ANOVA were met? (Feel free to use other methods)
+When using one-way ANOVA, we compare the four type seperately, and we assume that the samples are independent, the populations are normally distributed, and the population variances are equal.
+\par
+In this case, the ANOVA assumptions were only ***partly satisfied***:
+
+- The ***independence assumption appears reasonable*** because the prompt states that each medium was shown to a different group of randomly assigned people.
+  \par
+- To assess normality, I used the Shapiro-Wilk test for each group. The test produced p-values below 0.05 for all four groups, indicating that the ***normality assumption is violated***. 
+  ```{r q2e}
+  by(intend, media, shapiro.test)
+  ```
+  \medskip
+- Use Bartlett’s test to examine whether the group variances were equal. Bartlett’s test gave p = 0.7065, suggesting that the ***equal-variance assumption is reasonable***.
+  ```{r q2e_3}
+  bartlett.test(intend ~ media)
+  ```
+
+\medskip
+Therefore, ANOVA may still be used as an approximation, but the results should be interpreted with caution because normality is not satisfied.
+\par
+
+## Question 3
+Use the non-parametric Kruskal Wallis test:
+
+### (a) State the null and alternative hypotheses
+- $H_{null}$: all groups would give you ***similar*** values if randomly drawn
+- $H_{alt}$: at least one group would give you ***larger values*** than another if randomly drawn
+
+### (b) Compute an approximate Kruskal Wallis H ourselves:
+
+i. **Show the code and results of computing H**
+
+    \begin{equation}
+    H
+    = \frac{12}{N(N+1)} \sum_{i=1}^{k} \frac{R_i^2}{n_i}
+    - 3(N+1)
+    \end{equation}
+
+    \bigskip
+
+    \begin{minipage}[t]{0.48\linewidth}
+    \centering
+    \begin{tabular}{ll}
+    \hline
+    Symbol & Meaning \\
+    \hline
+    $N$ & total sample size \\
+    $k$ & number of groups \\
+    \hline
+    \end{tabular}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.48\linewidth}
+    \centering
+    \begin{tabular}{ll}
+    \hline
+    Symbol & Meaning \\
+    \hline
+    $n_i$ & sample size of group $i$ \\
+    $R_i$ & sum of ranks in group $i$ \\
+    \hline
+    \end{tabular}
+    \end{minipage}
+
+    \bigskip
+
+    ```{r q3b_i}
+    # ranks
+    ranks <- rank(intend)
+    rank_sums <- tapply(ranks, media, sum)
+    
+    # information is already computed in previous steps (Q2)
+
+    # Kruskal-Wallis H
+    H <- (12 / (total_n * (total_n + 1))) *
+      sum(rank_sums^2 / group_n) -
+      3 * (total_n + 1)
+    H
+    ```
+
+ii. **Compute the p-value of H, from the null chi-square distribution; is the H value significant at 5% significance? If so, state your conclusion of the hypotheses.**
+    ```{r q3b_ii}
+    # right-tailed test
+    kw_p <- pchisq(H, df = k - 1, lower.tail = FALSE)
+    kw_p
+    ```
+
+    The p-value is 0.03749292, which is below the 0.05 significance threshold. Therefore, we reject the null hypothesis and conclude that there is a statistically significant difference in intention to share among at least one pair of media types based on the Kruskal-Wallis test.
+
+\newpage
+
+### (c) Conduct the same test using the `kruskal.test()` function in R – confirm that you got similar results.
+```{r q3c}
+kruskal.test(intend ~ media)
+```
+The result from the `kruskal.test()` function is similar to our manual calculations.
+
+### (d) Conduct a post-hoc Dunn test (feel free to use the `dunn.test()` function from the `FSA` package) to see if the values of *any pairs of media have significantly different means* – what are your conclusions?
+```{r q3d}
+library("FSA")
+dunnTest(intend, media, method = "bonferroni")
+```
+Based on the post-hoc Dunn test with Bonferroni correction, only media type 2 and 4 showed a statistically significant difference (adjusted p = 0.0474 < 0.05), which means that they have significantly different distributions of intention to share. 
+\par
+All other pairwise comparisons were not statistically significant after adjustment, showing that there is no strong evidence of differences in intention to share between those media types at the 5% significance level.
